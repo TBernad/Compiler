@@ -3,6 +3,7 @@
 #### Date: June 8, 2023 (Spring Semester)
 #### Description: 2023 Compiler Term Project - Chung Ang University
 #### Professor: KIM Hyosu
+#### Submission file: team_<your_team_number>.zip or .tar.gz
 
 
 # Regular expressions module
