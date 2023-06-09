@@ -202,7 +202,7 @@ class SyntaxAnalyzer:
         parse_tree = self.create_node('ASSIGN')
         parse_tree.add_child(self.create_node(self.current_token.value))
         self.match('assign')
-        parse_tree.add_child(self.parse_rhs())
+        parse_tree.add_child(self.parse_expr())
         return parse_tree
 
     def parse_rhs(self):
@@ -235,20 +235,18 @@ class SyntaxAnalyzer:
             self.match('lparen')
             parse_tree.add_child(self.parse_expr())
             self.match('rparen')
-        elif self.current_token.type == 'id':
-            parse_tree.add_child(self.create_node(self.current_token.value))
-            self.match('id')
-        elif self.current_token.type in ['num', 'literal', 'character', 'boolstr']:
+        elif self.current_token.type in ['id', 'num', 'literal', 'character', 'boolstr']:
+            parse_tree = self.create_node('RHS')
             parse_tree.add_child(self.create_node(self.current_token.value))
             self.advance()
         else:
-            self.error(f'Invalid factor: {self.current_token.type}')
+            self.error(f'Invalid right-hand side: {self.current_token.type}')
         return parse_tree
 
     def parse_term(self):
         parse_tree = self.create_node('TERM')
         parse_tree.add_child(self.parse_factor())
-        while self.current_token is not None and self.current_token.type in ['multdiv']:
+        while self.current_token is not None and self.current_token.type in ['addsub', 'multdiv']:
             parse_tree.add_child(self.create_node(self.current_token.value))
             self.advance()
             parse_tree.add_child(self.parse_factor())
@@ -257,11 +255,11 @@ class SyntaxAnalyzer:
     def parse_expr(self):
         parse_tree = self.create_node('EXPR')
         parse_tree.add_child(self.parse_term())
-        while self.current_token is not None and self.current_token.type in ['plus', 'minus']:
+        while self.current_token is not None and self.current_token.type in ['addsub']:
             parse_tree.add_child(self.create_node(self.current_token.value))
             self.advance()
             parse_tree.add_child(self.parse_factor())
-            while self.current_token is not None and self.current_token.type in ['mult', 'div']:
+            while self.current_token is not None and self.current_token.type in ['addsub', 'multdiv']:
                 parse_tree.add_child(self.create_node(self.current_token.value))
                 self.advance()
                 if self.current_token.type == 'lparen':
@@ -389,6 +387,7 @@ class SyntaxAnalyzer:
             self.advance()
         self.match('lbrace')
         parse_tree.add_child(self.parse_odecl())
+        # print("TYPE:  ", self.current_token.value)
         self.match('rbrace')
         return parse_tree
 
