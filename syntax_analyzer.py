@@ -385,6 +385,9 @@ class SyntaxAnalyzer:
         parse_tree.add_child(self.create_node(self.current_token.value))
         self.match('id')
         self.match('lbrace')
+        while (self.current_token.type != 'lbrace'):
+            self.advance()
+        self.match('lbrace')
         parse_tree.add_child(self.parse_odecl())
         self.match('rbrace')
         return parse_tree
