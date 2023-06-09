@@ -201,7 +201,6 @@ class SyntaxAnalyzer:
     def parse_assign(self):
         parse_tree = self.create_node('ASSIGN')
         parse_tree.add_child(self.create_node(self.current_token.value))
-        self.match('id')
         self.match('assign')
         parse_tree.add_child(self.parse_rhs())
         return parse_tree
@@ -228,6 +227,56 @@ class SyntaxAnalyzer:
         parse_tree.add_child(self.parse_block())
         parse_tree.add_child(self.parse_return())
         self.match('rbrace')
+        return parse_tree
+
+    def parse_factor(self):
+        parse_tree = self.create_node('FACTOR')
+        if self.current_token.type == 'lparen':
+            self.match('lparen')
+            parse_tree.add_child(self.parse_expr())
+            self.match('rparen')
+        elif self.current_token.type == 'id':
+            parse_tree.add_child(self.create_node(self.current_token.value))
+            self.match('id')
+        elif self.current_token.type in ['num', 'literal', 'character', 'boolstr']:
+            parse_tree.add_child(self.create_node(self.current_token.value))
+            self.advance()
+        else:
+            self.error(f'Invalid factor: {self.current_token.type}')
+        return parse_tree
+
+    def parse_term(self):
+        parse_tree = self.create_node('TERM')
+        parse_tree.add_child(self.parse_factor())
+        while self.current_token is not None and self.current_token.type in ['multdiv']:
+            parse_tree.add_child(self.create_node(self.current_token.value))
+            self.advance()
+            parse_tree.add_child(self.parse_factor())
+        return parse_tree
+
+    def parse_expr(self):
+        parse_tree = self.create_node('EXPR')
+        parse_tree.add_child(self.parse_term())
+        while self.current_token is not None and self.current_token.type in ['plus', 'minus']:
+            parse_tree.add_child(self.create_node(self.current_token.value))
+            self.advance()
+            parse_tree.add_child(self.parse_factor())
+            while self.current_token is not None and self.current_token.type in ['mult', 'div']:
+                parse_tree.add_child(self.create_node(self.current_token.value))
+                self.advance()
+                if self.current_token.type == 'lparen':
+                    self.match('lparen')
+                    parse_tree.add_child(self.parse_expr())
+                    self.match('rparen')
+                elif self.current_token.type == 'id':
+                    parse_tree.add_child(self.create_node(self.current_token.value))
+                    self.match('id')
+                elif self.current_token.type in ['num', 'literal', 'character', 'boolstr']:
+                    parse_tree.add_child(self.create_node(self.current_token.value))
+                    self.advance()
+                else:
+                    self.error(f'Invalid factor: {self.current_token.type}')
+            parse_tree.add_child(self.parse_tree)
         return parse_tree
 
     def parse_arg(self):
@@ -273,36 +322,28 @@ class SyntaxAnalyzer:
             parse_tree.add_child(self.parse_assign())
             self.match('semi')
         elif self.current_token.type == 'if':
-            parse_tree.add_child(self.parse_ifstmt())
+            self.match('if')
+            self.match('lparen')
+            parse_tree.add_child(self.parse_cond())
+            self.match('comp')
+            self.match('boolstr')
+            self.match('rparen')
+            parse_tree.add_child(self.parse_block())
+            self.match('lbrace')
+            parse_tree.add_child(self.parse_else())
+            self.match('rbrace')
+            parse_tree.add_child(self.parse_tree)
         elif self.current_token.type == 'while':
-            parse_tree.add_child(self.parse_whilestmt())
+            self.match('while')
+            self.match('lparen')
+            parse_tree.add_child(self.parse_cond())
+            self.match('rparen')
+            self.match('lbrace')
+            parse_tree.add_child(self.parse_block())
+            self.match('rbrace')
+            parse_tree.add_child(self.parse_tree)
         else:
             self.error(f'Invalid statement: {self.current_token.type}')
-        return parse_tree
-
-    def parse_ifstmt(self):
-        parse_tree = self.create_node('IFSTMT')
-        self.match('if')
-        self.match('lparen')
-        parse_tree.add_child(self.parse_cond())
-        self.match('comp')
-        self.match('boolstr')
-        self.match('rparen')
-        parse_tree.add_child(self.parse_block())
-        self.match('lbrace')
-        parse_tree.add_child(self.parse_else())
-        self.match('rbrace')
-        return parse_tree
-
-    def parse_whilestmt(self):
-        parse_tree = self.create_node('WHILESTMT')
-        self.match('while')
-        self.match('lparen')
-        parse_tree.add_child(self.parse_cond())
-        self.match('rparen')
-        self.match('lbrace')
-        parse_tree.add_child(self.parse_block())
-        self.match('rbrace')
         return parse_tree
 
     def parse_cond(self):
