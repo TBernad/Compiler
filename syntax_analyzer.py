@@ -164,6 +164,8 @@ class SyntaxAnalyzer:
         return parse_tree
 
     def parse_decl(self):
+        while self.current_token.type == 'id':
+            self.match('id')
         if self.current_token.type == 'vtype':
             return self.parse_vdecl()
         elif self.current_token.type == 'class':
@@ -181,6 +183,8 @@ class SyntaxAnalyzer:
             parse_tree = self.parse_block()
             self.match('rbrace')
             return parse_tree
+        elif self.current_token.type == 'rbrace':
+            self.advance() # Represents an empty declaration
         else:
             self.error(f'Invalid declaration: {self.current_token.type}')
 
@@ -285,8 +289,8 @@ class SyntaxAnalyzer:
             parse_tree.add_child(self.create_node(self.current_token.value))
             self.match('id')
             parse_tree.add_child(self.parse_moreargs())
-        else:
-            parse_tree.add_child(None) # Epsilon production
+        elif self.current_token.type == 'id':
+            parse_tree.add_child(self.parse_expr()) # Epsilon production
         return parse_tree
 
     def parse_moreargs(self):
@@ -387,15 +391,19 @@ class SyntaxAnalyzer:
             self.advance()
         self.match('lbrace')
         parse_tree.add_child(self.parse_odecl())
-        # print("TYPE:  ", self.current_token.value)
         self.match('rbrace')
         return parse_tree
 
     def parse_odecl(self):
         parse_tree = self.create_node('ODECL')
+        while self.current_token.type == 'id':
+            self.match('id')
         if self.current_token.type in ['vtype', 'class']:
             parse_tree.add_child(self.parse_decl())
             parse_tree.add_child(self.parse_odecl())
+            while self.current_token.type == 'id':
+                self.match('id')
+            parse_tree.add_child(self.parse_decl())
         else:
             parse_tree.add_child(None) # Epsilon production
         return parse_tree
