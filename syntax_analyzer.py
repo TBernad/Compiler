@@ -8,6 +8,8 @@
 
 # Regular expressions module
 import re
+# Sys module to get program's arguments
+import sys
 
 
 # Token class
@@ -30,8 +32,6 @@ def tokenize(source_code: str):
         ('boolstr', r'true|false'),
         # literal for literal strings
         ('literal', r'"[^"]*"'),
-        # id for the identifiers of variables and functions
-        ('id', r'[A-Za-z_]\w*'),
         # if for if statement
         ('if', r'if'),
         # else for else statement
@@ -42,6 +42,10 @@ def tokenize(source_code: str):
         ('return', r'return'),
         # class for class declarations
         ('class', r'class'),
+        # Used to detect comment
+        ('comment', r'//.*'),
+        # id for the identifiers of variables and functions
+        ('id', r'[A-Za-z_]\w*'),
         # addsub for + and - arithmetic operators
         ('addsub', r'\+|-'),
         # multdiv for * and / arithmetic operators
@@ -80,7 +84,7 @@ def tokenize(source_code: str):
         token_value = match.group(token_type)
 
         # Exclude whitespace tokens
-        if token_type != 'whitespace':
+        if token_type != 'whitespace' and token_type != 'comment':
             # Add the token to the list
             tokens.append(Token(token_type, token_value))
 
@@ -347,21 +351,27 @@ class SyntaxAnalyzer:
         return parse_tree
 
 
-#### EXAMPLE USAGE
-
-# Generate tokens from Java source code
-file_path = 'examples/Adder.java'
-tokens = parse_java_code(file_path)
-
-# Init our SyntaxAnalyzer with the obtained tokens
-analyzer = SyntaxAnalyzer(tokens)
-
-# Parse them to generate our tree
-analyzer.parse()
-
 # Print the parse tree
 def print_parse_tree(node, indent=''):
     print(indent + node.label)
     for child in node.children:
         print_parse_tree(child, indent + '  ')
-print_parse_tree(analyzer.parse_tree)
+
+
+# Main
+if __name__ == "__main__":
+    # Get java source code file path
+    file_path = sys.argv[1]
+
+    # Generate tokens from Java source code
+    tokens = parse_java_code(file_path)
+    # Print tokens' type and value
+    for token in tokens:
+        print(token.type + "\t ---> \t" + token.value)
+
+    # Init our SyntaxAnalyzer with the obtained tokens
+    analyzer = SyntaxAnalyzer(tokens)
+
+    # Parse them to generate our tree and print it
+    analyzer.parse()
+    print_parse_tree(analyzer.parse_tree)
